@@ -1,0 +1,62 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: pet2cattle-hook
+spec:
+  selector:
+    component: pet2cattle-hook
+  ports:
+  - name: http
+    port: 443
+    targetPort: 8443
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pet2cattle-hook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: pet2cattle-hook
+  template:
+    metadata:
+      labels:
+        component: pet2cattle-hook
+    spec:
+      containers:
+      - name: pet2cattle
+        image: rmccarth/slixperi-mutating-webhook:5
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8443
+        volumeMounts:
+        - name: ssl-pet2cattle-webhook
+          mountPath: /ssl
+      volumes:
+      - name: ssl-pet2cattle-webhook
+        configMap:
+          name: ssl-pet2cattle-webhook
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: pet2cattle-webhook
+webhooks:
+  - name: pet2cattle-hook.webhookdemo.svc
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: pet2cattle-hook
+        namespace: webhookdemo
+        path: "/mutate"
+      caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUR6VENDQXJXZ0F3SUJBZ0lVR3F1UThpaVRXLyttc0EycGpYOVl5L2FsNE1rd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1lERUxNQWtHQTFVRUJoTUNVa014RWpBUUJnTlZCQWdNQ1VKaGNtTmxiRzl1WVRFVE1CRUdBMVVFQ2d3SwpjR1YwTW1OaGRIUnNaVEVvTUNZR0ExVUVBd3dmY0dWME1tTmhkSFJzWlMxb2IyOXJMbmRsWW1odmIydGtaVzF2CkxuTjJZekFlRncweU1qQTNNamd4T0RJNE1qRmFGdzB5TXpBM01qZ3hPREk0TWpGYU1HQXhDekFKQmdOVkJBWVQKQWxKRE1SSXdFQVlEVlFRSURBbENZWEpqWld4dmJtRXhFekFSQmdOVkJBb01DbkJsZERKallYUjBiR1V4S0RBbQpCZ05WQkFNTUgzQmxkREpqWVhSMGJHVXRhRzl2YXk1M1pXSm9iMjlyWkdWdGJ5NXpkbU13Z2dFaU1BMEdDU3FHClNJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFS0FvSUJBUURnZmxjR2M5YkIwMnpUSXJpUENUeXloTWlrVDVPZkV2Z2QKVlQzUXplbkJvTkF2Nnp1Q1ovUVdEVVNhcXRJb0RKSGtISTZHQVJjMUZ5UEVVa2lFYU1YMzJpdmVZY1A3b1VORQp3aVp3am5ramlWclEyZ1ROYW1yVm95QlZaL28yUDg1Wkk1TGxhdWRTTGx3UHplYmRwSXlpRUJ2S05FZTJjVnlZCkR1T0dyT2h0OXJJWTN3NGxkWUM3dFNDdUlnS2VyMml1bldUQm9tSmtleG1pcVE0K05JajN5b3U0d2pjTVMzaVIKVjBSNzFhUnZHenhkclJISyt4VzNtdnZoUUwrekQrVFAyR1VHMjZtemRsK3h0aGZXWjNaNmpsSjZzcENsc3E5MgorWERJQUZtMGMwMTVVeE9PbWVlSE53MlhkMUkzWXoxSk1mSjFJSTJwVnZsajdwNTZGL29GQWdNQkFBR2pmekI5Ck1CMEdBMVVkRGdRV0JCUU9ld05henNGdnliRmRZY09lNzV2aENYQzF2REFmQmdOVkhTTUVHREFXZ0JRT2V3TmEKenNGdnliRmRZY09lNzV2aENYQzF2REFQQmdOVkhSTUJBZjhFQlRBREFRSC9NQ29HQTFVZEVRUWpNQ0dDSDNCbApkREpqWVhSMGJHVXRhRzl2YXk1M1pXSm9iMjlyWkdWdGJ5NXpkbU13RFFZSktvWklodmNOQVFFTEJRQURnZ0VCCkFCQVJSVTV3MUhMOVFRTGhra1g0WmFLcnEyMi8rZCtzcjByRWtIaWsyc0RXWkN1Q1BJTUhiL1grd0JMbWVyWWQKNmxXaUNiM0ZjNHdrbnhIUGQyZWtFcG9aUTg4MXdPZ3lEeDhBZmRUZXluZERscWhvWlN4NTZpZDZ2V1c4VnRFLwo5bXQ3TEZMOFFTQTl2WHNySE5FaUZrTml0VUxPRjFhM1lyTDF5VWsyYjdxakhEaENsMGc4OCtEOEpORFNoWnllCksyam9tRzFKczMzd3Zhckl6SnkzOXFRa2Rkb1FGVmh5QmdKdzRaRnY0dEJCY1k0VC9PYzhhRlkrU21GSVpRWnAKUmxFOHRCaDViN2lsZTlqMkRNc2RSRFM5UFlhM1B2MFF2bU1Fck1XM05haUczTkxWMzBFSW5SY0lvWVR6MlhNdQptNHN6amlSQmg4NmlJcDRGQUNicWZLUT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+    rules:
+      - operations: [ "CREATE" ]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    admissionReviewVersions: ["v1", "v1beta1"]
+    sideEffects: None
+    timeoutSeconds: 5
